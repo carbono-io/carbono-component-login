@@ -1,0 +1,25 @@
+{
+  "name": "carbono-component-login",
+  "version": "0.0.1",
+  "description": "simple login REST service",
+  "main": "index.js",
+  "scripts": {
+    "test": "curl -d '{ \"username\" : \"someuser\", \"password\" : \"somepass\" }' -H \"Content-Type: application/json\" http://localhost:6543/login"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@bitbucket.org/carbonoio/carbono-component-login.git"
+  },
+  "keywords": [
+    "login"
+  ],
+  "author": "Daniel Moura",
+  "license": "ISC",
+  "homepage": "https://bitbucket.org/carbonoio/carbono-component-login#readme",
+  "dependencies": {
+    "body-parser": "^1.14.0",
+    "carbono-service-manager": "0.0.4",
+    "colors": "^1.1.2",
+    "express": "^4.13.3"
+  }
+}

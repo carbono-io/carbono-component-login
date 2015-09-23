@@ -1,0 +1,9 @@
+{
+    "port" : 7799,
+    "host" : "127.0.0.1",
+    "etcd": {
+        "serverPort": 7799,
+        "serverAddress": "127.0.0.1",
+        "serviceAlias" : "applogin"
+    }
+}
