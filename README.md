@@ -8,9 +8,13 @@ infrastructure when it is needed.
 
 How to test:
 ```
+curl -d '{ "username" : "someuser", "otherfield" : "somepass" }' -H "Content-Type: application/json" http://localhost:7799/createuser
+
+curl -d '{ "username" : "someuser", "password" : "somepass" }' -H "Content-Type: application/json" http://localhost:7799/createuser
+
 curl -d '{ "username" : "someuser", "password" : "somepass" }' -H "Content-Type: application/json" http://localhost:7799/login
 
-curl -d '{ "username" : "someuser", "password" : "otherpwd" }' -H "Content-Type: application/json" http://localhost:7799/login
+curl -d '{ "username" : "someuser", "password" : "wrongpwd" }' -H "Content-Type: application/json" http://localhost:7799/login
 
 curl -d '{ "token" : "the_token_returned_by /login" }' -H "Content-Type: application/json" http://localhost:7799/authenticated
 
