@@ -6,7 +6,9 @@ user generated app can have a efficient and easy to user login component.
 This component is available as a Docker image to be run by the carbono's
 infrastructure when it is needed.
 
-How to test:
+How to test on command line:
+```node .```
+then:
 ```
 curl -d '{ "username" : "someuser", "otherfield" : "somepass" }' -H "Content-Type: application/json" http://localhost:7799/createuser
 
