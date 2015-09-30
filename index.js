@@ -15,7 +15,7 @@ var users = [];
 //----------------------------------------------------------------------
 
 app.get('/', function (request, response) {
-    res.send('You are doing it wrong! Try http://carbono.io/');
+    request.send('You are doing it wrong! Try http://carbono.io/');
 });
 
 //----------------------------------------------------------------------
