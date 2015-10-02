@@ -13,7 +13,7 @@ app.use(bodyParser.json());
 var PROTOCOL       = 'http://';
 var DB             = '/login';
 var COLLECTION     = '/users';
-var CRUDER_ADDRESS = PROTOCOL + config.cruder.serverAddress + ':' + config.cruder.serverPort + DB + COLLECTION;
+var CRUDER_ADDRESS = PROTOCOL + config.cruder.serverAddress + ':' + config.cruder.serverPort + DB;
 var fakeToken      = 'dfsfksjnfb28eriewnrewkjnsdo39jdoi';
 
 //----------------------------------------------------------------------
@@ -26,7 +26,7 @@ app.get('/', function (request, res) {
 
 app.post('/createuser', function (req, res) {
     if (req.body.username && req.body.password) {
-        var url = CRUDER_ADDRESS + '?query={"username":"' + req.body.username + '"}';
+        var url = CRUDER_ADDRESS + COLLECTION + '?query={"username":"' + req.body.username + '"}';
         request(url, function (error, response, body) {
             var found = false;
             var item = 0;
@@ -36,8 +36,9 @@ app.post('/createuser', function (req, res) {
             var created = false;
             statusCode = response.statusCode;
             if (statusCode == 200) {
-                user = JSON.parse(body);
-                if (user[0]._id) {
+                var obj = JSON.parse(body);
+                if (obj[0] && obj[0]._id) {
+                    user = obj[0];
                     found = true;
                 }
             } else {
@@ -60,24 +61,43 @@ app.post('/createuser', function (req, res) {
                         message = 'error creating user';
                     }
                     res.writeHead(statusCode, {'Content-Type': 'application/json'});
-                    res.write(JSON.stringify({'created': created, 'message': message}));
+                    res.write(JSON.stringify({'success': created, 'created': created, 'message': message}));
+                    res.end();
+                });
+            } else if (statusCode == 200) {
+                url = CRUDER_ADDRESS + COLLECTION + '/' + user._id;
+                user.password = req.body.password;
+                delete user._id;
+                var success = false;
+                request({
+                    url: url,
+                    method: 'PUT',
+                    json: true,
+                    body: user
+                }, function (error, response, body) {
+                    var statusCode = response.statusCode;
+                    var message = '';
+                    if (statusCode == 200 && body.ok == 1) {
+                        success = true;
+                        message = 'password updated';
+                    } else {
+                        message = 'error updating user password';
+                    }
+                    res.writeHead(statusCode, {'Content-Type': 'application/json'});
+                    res.write(JSON.stringify({'success': success, 'created': false, 'message': message}));
                     res.end();
                 });
             } else {
-                var message = '';
-                if (statusCode == 200) {
-                    message = 'password updated';
-                } else {
-                    message = 'unexpected status ' + statusCode + ' from the cruder machine when requesting ' + url;
-                }
+                message = 'unexpected status ' + statusCode + ' from the cruder machine when requesting ' + url;
                 res.writeHead(statusCode, {'Content-Type': 'application/json'});
-                res.write(JSON.stringify({'created': false, 'message': message}));
+                res.write(JSON.stringify({'success': false, 'created': false, 'message': message}));
                 res.end();
             }
         });
     } else {
         res.writeHead(400, {'Content-Type': 'application/json'});
-        res.write(JSON.stringify({'created': false}));
+        res.write(JSON.stringify({'success': false, 'created': false, 'message': 'invalid content'}));
+        res.end();
     }
 });
 
