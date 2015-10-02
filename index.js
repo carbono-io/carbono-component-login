@@ -5,6 +5,7 @@ var bodyParser = require('body-parser');
 var config     = require('./config.json');
 var etcd       = require('./service-register');
 var request    = require('request');
+var randtoken  = require('rand-token');
 
 var app = express();
 
@@ -14,7 +15,6 @@ var PROTOCOL       = 'http://';
 var DB             = '/login';
 var COLLECTION     = '/users';
 var CRUDER_ADDRESS = PROTOCOL + config.cruder.serverAddress + ':' + config.cruder.serverPort + DB;
-var fakeToken      = 'dfsfksjnfb28eriewnrewkjnsdo39jdoi';
 
 //----------------------------------------------------------------------
 
@@ -41,8 +41,6 @@ app.post('/createuser', function (req, res) {
                     user = obj[0];
                     found = true;
                 }
-            } else {
-                message = 'unexpected status ' + statusCode + ' from the cruder machine when requesting ' + url;
             }
             if (statusCode == 200 && !found) {
                 request({
@@ -120,13 +118,11 @@ app.post('/login', function (req, res) {
                     user = obj[0];
                     found = true;
                 }
-            } else {
-                message = 'unexpected status ' + statusCode + ' from the cruder machine when requesting ' + url;
             }
             if (found && req.body.password == user.password) {
                 url = CRUDER_ADDRESS + COLLECTION + '/' + user._id;
                 delete user._id;
-                user.token = fakeToken;
+                user.token = randtoken.generate(16);
                 var success = false;
                 request({
                     url: url,
@@ -138,7 +134,7 @@ app.post('/login', function (req, res) {
                     if (statusCode == 200 && body.ok == 1) {
                         success = true;
                         res.writeHead(200, {'Content-Type': 'application/json'});
-                        res.write(JSON.stringify({'success': true, 'token': fakeToken}));
+                        res.write(JSON.stringify({'success': true, 'token': user.token}));
                         res.end();
                     } else {
                         res.writeHead(statusCode, {'Content-Type': 'application/json'});
@@ -162,27 +158,94 @@ app.post('/login', function (req, res) {
 //----------------------------------------------------------------------
 
 app.post('/authenticated', function (req, res) {
-    if (req.body.token == fakeToken) {
-        res.writeHead(200, {'Content-Type': 'application/json'});
-        res.write(JSON.stringify({'isAuthenticated': true}));
+    if (req.body.token) {
+        var url = CRUDER_ADDRESS + COLLECTION + '?query={"token":"' + req.body.token + '"}';
+        request(url, function (error, response, body) {
+            var found = false;
+            var item = 0;
+            var message = '';
+            var statusCode = 400;
+            var user;
+            var created = false;
+            statusCode = response.statusCode;
+            if (statusCode == 200) {
+                var obj = JSON.parse(body);
+                if (obj[0] && obj[0]._id) {
+                    user = obj[0];
+                    found = true;
+                }
+            }
+            if (found) {
+                res.writeHead(statusCode, {'Content-Type': 'application/json'});
+                res.write(JSON.stringify({'isAuthenticated': true, 'username': user.username}));
+                res.end();
+            } else {
+                res.writeHead(statusCode, {'Content-Type': 'application/json'});
+                res.write(JSON.stringify({'isAuthenticated': false}));
+                res.end();
+            }
+        });
     } else {
         res.writeHead(200, {'Content-Type': 'application/json'});
         res.write(JSON.stringify({'isAuthenticated': false}));
+        res.end();
     }
-    res.end();
 });
 
 //----------------------------------------------------------------------
 
 app.post('/logout', function (req, res) {
-    if (req.body.token == fakeToken) {
-        res.writeHead(200, {'Content-Type': 'application/json'});
-        res.write(JSON.stringify({'loggedout': true}));
+    if (req.body.token) {
+        var url = CRUDER_ADDRESS + COLLECTION + '?query={"token":"' + req.body.token + '"}';
+        request(url, function (error, response, body) {
+            var found = false;
+            var item = 0;
+            var message = '';
+            var statusCode = 400;
+            var user;
+            var created = false;
+            statusCode = response.statusCode;
+            if (statusCode == 200) {
+                var obj = JSON.parse(body);
+                if (obj[0] && obj[0]._id) {
+                    user = obj[0];
+                    found = true;
+                }
+            }
+            if (found) {
+                url = CRUDER_ADDRESS + COLLECTION + '/' + user._id;
+                delete user._id;
+                delete user.token;
+                var success = false;
+                request({
+                    url: url,
+                    method: 'PUT',
+                    json: true,
+                    body: user
+                }, function (error, response, body) {
+                    var statusCode = response.statusCode;
+                    if (statusCode == 200 && body.ok == 1) {
+                        success = true;
+                        res.writeHead(200, {'Content-Type': 'application/json'});
+                        res.write(JSON.stringify({'loggedout': true}));
+                        res.end();
+                    } else {
+                        res.writeHead(statusCode, {'Content-Type': 'application/json'});
+                        res.write(JSON.stringify({'loggedout': false}));
+                        res.end();
+                    }
+                });
+            } else {
+                res.writeHead(statusCode, {'Content-Type': 'application/json'});
+                res.write(JSON.stringify({'loggedout': false}));
+                res.end();
+            }
+        });
     } else {
-        res.writeHead(200, {'Content-Type': 'application/json'});
+        res.writeHead(400, {'Content-Type': 'application/json'});
         res.write(JSON.stringify({'loggedout': false}));
+        res.end();
     }
-    res.end();
 });
 
 //----------------------------------------------------------------------
