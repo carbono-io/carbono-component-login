@@ -105,26 +105,58 @@ app.post('/createuser', function (req, res) {
 
 app.post('/login', function (req, res) {
     if (req.body.username && req.body.password) {
-        var found = false;
-        for (var item in users) {
-            if (users[item]['username'] == req.body.username && users[item]['password'] == req.body.password) {
-                found = true;
-                break;
+        var url = CRUDER_ADDRESS + COLLECTION + '?query={"username":"' + req.body.username + '"}';
+        request(url, function (error, response, body) {
+            var found = false;
+            var item = 0;
+            var message = '';
+            var statusCode = 400;
+            var user;
+            var created = false;
+            statusCode = response.statusCode;
+            if (statusCode == 200) {
+                var obj = JSON.parse(body);
+                if (obj[0] && obj[0]._id) {
+                    user = obj[0];
+                    found = true;
+                }
+            } else {
+                message = 'unexpected status ' + statusCode + ' from the cruder machine when requesting ' + url;
             }
-        }
-        if (found) {
-            console.log("found");
-            res.writeHead(200, {'Content-Type': 'application/json'});
-            res.write(JSON.stringify({'token': fakeToken}));
-        } else {
-            res.writeHead(400, {'Content-Type': 'application/json'});
-            res.write(JSON.stringify({'message': 'wrong username/password'}));
-        }
+            if (found && req.body.password == user.password) {
+                url = CRUDER_ADDRESS + COLLECTION + '/' + user._id;
+                delete user._id;
+                user.token = fakeToken;
+                var success = false;
+                request({
+                    url: url,
+                    method: 'PUT',
+                    json: true,
+                    body: user
+                }, function (error, response, body) {
+                    var statusCode = response.statusCode;
+                    if (statusCode == 200 && body.ok == 1) {
+                        success = true;
+                        res.writeHead(200, {'Content-Type': 'application/json'});
+                        res.write(JSON.stringify({'success': true, 'token': fakeToken}));
+                        res.end();
+                    } else {
+                        res.writeHead(statusCode, {'Content-Type': 'application/json'});
+                        res.write(JSON.stringify({'success': false, 'message': 'error on token persistence'}));
+                        res.end();
+                    }
+                });
+            } else {
+                res.writeHead(200, {'Content-Type': 'application/json'});
+                res.write(JSON.stringify({'success': false, 'message': 'wrong username/password'}));
+                res.end();
+            }
+        });
     } else {
         res.writeHead(400, {'Content-Type': 'application/json'});
-        res.write(JSON.stringify({'message': 'wrong username/password'}));
+        res.write(JSON.stringify({'success': false, 'message': 'wrong username/password'}));
+        res.end();
     }
-    res.end();
 });
 
 //----------------------------------------------------------------------
