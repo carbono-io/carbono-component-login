@@ -5,5 +5,10 @@
         "serverPort": 7799,
         "serverAddress": "127.0.0.1",
         "serviceAlias" : "applogin"
+    },
+    "cruder": {
+        "serverPort": 3000,
+        "serverAddress": "127.0.0.1",
+        "serviceAlias" : "cruder"
     }
 }
